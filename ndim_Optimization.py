@@ -2,155 +2,148 @@ import numpy as np
 import argparse
 
 def Steepest_Gradient_method(Q,b,initial_x,n):
-    xs = []
-    gs = []
-    alphas = []
+    x_buffer = [] # Iteration 에 따른 x 값을 저장하기 위한 list
+    g_buffer = [] # Iteration 에 따른 g 값을 저장하기 위한 list
+    alpha_buffer = [] # Iteration 에 따른 alpha 값을 저장하기 위한 list
 
-    x0 = np.array(initial_x)
-    xs.append(x0)
+    x0 = np.array(initial_x) # Initial point
+    x_buffer.append(x0)
 
-    g0 = np.dot(Q,x0) - b
-    gs.append(g0)
+    g0 = np.dot(Q,x0) - b # G Initial value
+    g_buffer.append(g0)
 
-    alpha0 = g0.dot(g0) / g0.dot(Q).dot(g0)
-    alphas.append(alpha0)
+    alpha0 = g0.dot(g0) / g0.dot(Q).dot(g0) # Alpha Initial value
+    alpha_buffer.append(alpha0)
 
     for i in range(n):
+        x = x_buffer[i] - alpha_buffer[i] * g_buffer[i] # x(k+1) = x(k) - a(k)g(k)
+        x_buffer.append(x)
+        g = np.dot(Q,x_buffer[i+1]) - b # g = Qx-b
+        g_buffer.append(g)
 
-        x = xs[i] - alphas[i] * gs[i]
-        xs.append(x)
-        if np.all(x < 1e-3) :
-            break
-        g = np.dot(Q,xs[i+1]) - b
-        gs.append(g)
+        alpha = g.dot(g)/g.dot(Q).dot(g) # a(k) = g(k)T*g(k)/g(k)T*Q*g(k)
+        alpha_buffer.append(alpha)
 
-        alpha = g.dot(g)/g.dot(Q).dot(g)
-        alphas.append(alpha)
+    x_buffer = np.round(x_buffer, 3) #
+    alpha_buffer = np.round(alpha_buffer, 3)
 
-    xs = np.round(xs, 3)
-    alphas = np.round(alphas, 3)
-
-    for j in range(xs.shape[0]):
+    for j in range(x_buffer.shape[0]):
         print(f"Iteration {j}")
-        print(f"Value of x : {xs[j]}")
-        print(f"Value of a : {alphas[j]}")
+        print(f"Value of x : {x_buffer[j]}")
+        print(f"Value of a : {alpha_buffer[j]}")
 
-    return xs
+    return x_buffer
 
 def Newtons_method(Q,b,initial_x):
     x = np.array(initial_x)
-    g = np.dot(Q,x) - b
-    F = Q
-    x = x - np.dot(np.linalg.inv(F),g)
+    g = np.dot(Q,x) - b # g = Qx -b
+    F = Q # Hessian matrix = Q
+    x = x - np.dot(np.linalg.inv(F),g) # x = x - F_inv*g
     print(f"Solution of x : {x}")
     return x
 
 def Conjugate_Gradient_method(Q,b,initial_x):
     n = b.shape[0]
-    xs = []
-    gs = []
-    ds = []
-    alphas = []
+    x_buffer = []
+    g_buffer = []
+    d_buffer = []
+    alpha_buffer = []
 
     x0 = np.array(initial_x)
-    # x0 = np.random.rand(n)
-    xs.append(x0)
+    x_buffer.append(x0)
 
     g0 = np.dot(Q,x0) - b
-    # Original :r0 = b - np.dot(Q,x0) # g(k)
-    gs.append(g0)
+    g_buffer.append(g0)
 
     d0 = -g0
-    # Original p0 = r0 # d(k) = -g(k)
-    ds.append(d0)
+    d_buffer.append(d0)
 
-    alpha0 = - g0.dot(d0) / d0.dot(Q).dot(d0)
-    # Original alpha0 = p0.dot(p0)/p0.dot(Q).dot(p0) # a(k) = - g(k)T * d(k) / d(k)T * A * d(k)
-    alphas.append(alpha0)
+    alpha0 = - g0.dot(d0) / d0.dot(Q).dot(d0) # a(k) = - g(k)T * d(k) / d(k)T * A * d(k)
+    alpha_buffer.append(alpha0)
 
     for i in range(n):
 
-        x = xs[i] + alphas[i] * ds[i]
-        xs.append(x)
-        g = np.dot(Q,xs[i+1]) - b
-        #g = gs[i] - alphas[i] * Q.dot(ds[i]) # g(k+1) = gradient f(x(k+1))
-        gs.append(g)
+        x = x_buffer[i] + alpha_buffer[i] * d_buffer[i]
+        x_buffer.append(x)
+        g = np.dot(Q,x_buffer[i+1]) - b # g(k+1) = gradient f(x(k+1))
+        g_buffer.append(g)
 
-        beta = (gs[i+1]).dot(Q).dot(ds[i])/(ds[i]).dot(Q).dot(ds[i]) # beta = -g(k)T*d(k)/d(k)T*Q*d(k)
+        beta = (g_buffer[i+1]).dot(Q).dot(d_buffer[i])/(d_buffer[i]).dot(Q).dot(d_buffer[i]) # beta = -g(k)T*d(k)/d(k)T*Q*d(k)
 
-        d = -g + beta *ds[i]
-        ds.append(d)
+        d = -g + beta * d_buffer[i]
+        d_buffer.append(d)
 
-        alpha = -gs[i+1].dot(ds[i+1])/(ds[i+1]).dot(Q).dot(ds[i+1])
-        alphas.append(alpha)
+        alpha = -g_buffer[i+1].dot(d_buffer[i+1])/(d_buffer[i+1]).dot(Q).dot(d_buffer[i+1])
+        alpha_buffer.append(alpha)
 
-    xs = np.round(xs, 3)
-    alphas = np.round(alphas, 3)
-    ds = np.round(ds, 3)
+    x_buffer = np.round(x_buffer, 3)
+    alpha_buffer = np.round(alpha_buffer, 3)
+    d_buffer = np.round(d_buffer, 3)
 
-    for j in range(xs.shape[0]):
+    for j in range(x_buffer.shape[0]):
         print(f"Iteration {j}")
-        print(f"Value of x : {xs[j]}")
-        print(f"Value of a : {alphas[j]}")
-        print(f"Value of d : {ds[j]}")
+        print(f"Value of x : {x_buffer[j]}")
+        print(f"Value of a : {alpha_buffer[j]}")
+        print(f"Value of d : {d_buffer[j]}")
 
-    return xs
+    return x_buffer
 
 def Quasi_Newtons_method(Q,b,initial_x,n):
 
-    xs = []
-    Hs = []
-    gs = []
-    ds = []
-    alphas = []
+    x_buffer = [] # Iteration 에 따른 x 값을 저장하기 위한 list
+    H_buffer = [] # Iteration 에 따른 H 값을 저장하기 위한 list
+    g_buffer = [] # Iteration 에 따른 g 값을 저장하기 위한 list
+    d_buffer = [] # Iteration 에 따른 d 값을 저장하기 위한 list
+    alpha_buffer = [] # Iteration 에 따른 alpha 값을 저장하기 위한 list
 
-    x0 = np.array(initial_x)
-    # x0 = np.random.rand(n)
-    xs.append(x0)
+    x0 = np.array(initial_x) # Initial point
+    x_buffer.append(x0)
 
-    H0 = np.identity(b.shape[0])
-    Hs.append(H0)
+    H0 = np.identity(b.shape[0]) # Initial value of H0 : Identity matrix
+    H_buffer.append(H0)
 
-    g0 = np.dot(Q, x0) - b
-    gs.append(g0)
+    g0 = np.dot(Q, x0) - b # G Initial value
+    g_buffer.append(g0)
 
     d0 = - H0.dot(g0)
-    ds.append(d0)
+    d_buffer.append(d0)
 
-    alpha0 = - g0.dot(d0) / d0.dot(Q).dot(d0)
-    alphas.append(alpha0)
+    alpha0 = - g0.dot(d0) / d0.dot(Q).dot(d0) # Alpha Initial value
+    alpha_buffer.append(alpha0)
 
     for i in range(n):
-        x = xs[i] + alphas[i] * ds[i]
-        xs.append(x)
-        del_x = alphas[i] * ds[i]
+        x = x_buffer[i] + alpha_buffer[i] * d_buffer[i]
+        x_buffer.append(x)
+        del_x = alpha_buffer[i] * d_buffer[i] # x[k+1]- x[k]
 
-        g = np.dot(Q, xs[i + 1]) - b
-        gs.append(g)
+        g = np.dot(Q, x_buffer[i + 1]) - b
+        g_buffer.append(g)
 
-        del_g = g - gs[i]
+        del_g = g - g_buffer[i] # g[k+1] - g[k]
 
         temp0 = del_x - H0.dot(del_g)
         temp1 = del_g.dot(temp0)
-        H = Hs[i] + np.dot(temp0.reshape(temp0.shape[0],1), temp0.reshape(1,temp0.shape[0]))/temp1
-        Hs.append(H)
+        H = H_buffer[i] + np.dot(temp0.reshape(temp0.shape[0], 1), temp0.reshape(1, temp0.shape[0])) / temp1
+        # H1 = H0 + (del_x - h * del_g)(del_x - h * del_g)T/del_g * ( del_x - h * del_g)
+        H_buffer.append(H)
 
-        d = -H.dot(g)
-        ds.append(d)
+        d = -H.dot(g) # d = -H*g
+        d_buffer.append(d)
 
-        alpha = - g.dot(d) / d.dot(Q).dot(d)
-        alphas.append(alpha)
+        alpha = - g.dot(d) / d.dot(Q).dot(d) # a = -gT*d/dT*Q*d
+        alpha_buffer.append(alpha)
 
-    xs = np.round(xs,3)
-    alphas = np.round(alphas,3)
-    ds = np.round(ds,3)
+    x_buffer = np.round(x_buffer, 3)
+    alpha_buffer = np.round(alpha_buffer, 3)
+    d_buffer = np.round(d_buffer, 3)
 
-    for j in range(xs.shape[0]):
+    for j in range(x_buffer.shape[0]):
         print(f"Iteration {j}")
-        print(f"Value of x : {xs[j]}")
-        print(f"Value of a : {alphas[j]}")
-        print(f"Value of d : {ds[j]}")
-    return xs
+        print(f"Value of x : {x_buffer[j]}")
+        print(f"Value of a : {alpha_buffer[j]}")
+        print(f"Value of d : {d_buffer[j]}")
+
+    return x_buffer
 
 if __name__ == '__main__':
 
